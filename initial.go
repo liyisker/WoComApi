@@ -10,16 +10,11 @@ type WoCom struct {
 	corpId   string
 	secret   string
 	agentId  string
-	Messages messages
-}
-
-type messages struct {
 }
 
 var (
 	crawler *predator.Crawler
 	token   string
-	agentId string
 )
 
 func init() {
@@ -35,11 +30,9 @@ func NewWoCom(opts ...WoComOption) *WoCom {
 	for _, op := range opts {
 		op(c)
 	}
-	agentId = c.agentId
 	//Token
 	c.getToken()
 	go c.updateToken()
-
 	return c
 }
 
@@ -70,14 +63,14 @@ func (w *WoCom) updateToken() {
 
 /************************* 发送消息 ****************************/
 
-// Text 文本消息
-func (m *messages) TextAll(content string) error {
+// MessageText 文本消息
+func (m *WoCom) MessageText(content string) error {
 	data := `{
    "touser" : "@all",
    "toparty" : "@all",
    "totag" : "@all",
    "msgtype" : "text",
-   "agentid" : ` + agentId + `,
+   "agentid" : ` + m.agentId + `,
    "text" : {
        "content" : ` + `"` + content + `""` + `
    },
@@ -91,5 +84,61 @@ func (m *messages) TextAll(content string) error {
 	if err != nil {
 		return err
 	}
+
+
+
+
 	return nil
 }
+
+// MessageTextCard 卡片消息 title标题，description内容（支持html），Url链接，btntxt按钮文字
+func (m *WoCom) MessageTextCard(title,description,URL,btntxt string)error {
+	data :=`{
+   "touser" : "@all",
+   "toparty" : "@all",
+   "totag" : "@all",
+   "msgtype" : "textcard",
+   "agentid" : `+m.agentId+`,
+   "textcard" : {
+            "title" : "`+title+`",
+            "description" : "`+description+`",
+            "url" : "`+URL+`",
+                        "btntxt":"`+btntxt+`"
+   },
+   "enable_id_trans": 0,
+   "enable_duplicate_check": 0,
+   "duplicate_check_interval": 1800
+}`
+
+	err := crawler.PostRaw("https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token="+token, []byte(data), nil)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// MessageMarkdown markdown消息
+func (m *WoCom) MessageMarkdown(content string)error {
+	data := `{
+		"touser" : "@all",
+			"toparty" : "@all",
+			"totag" : "@all",
+			"msgtype": "markdown",
+			"agentid" : `+m.agentId+`,
+			"markdown": {
+			"content": "`+content+`"
+	},
+	"enable_duplicate_check": 0,
+	"duplicate_check_interval": 1800
+	}`
+
+
+	err := crawler.PostRaw("https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token="+token, []byte(data), nil)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
